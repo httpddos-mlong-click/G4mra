@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: g4ram-skill-assessment
+    env: node
+    plan: free
+    buildCommand: npm install --ignore-scripts
+    startCommand: node src/server.js
+    envVars:
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATA_DIR
+        value: /opt/render/project/src/data
+      - key: NODE_ENV
+        value: production
+    disk:
+      name: g4ram-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1

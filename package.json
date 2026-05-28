@@ -1,0 +1,19 @@
+{
+  "name": "g4ram-skill-assessment",
+  "version": "1.0.0",
+  "description": "Testing Skill for G4ram — Cyber Security Skill Assessment Platform",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node src/server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.6",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

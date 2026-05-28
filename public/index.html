@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Testing Skill for G4ram</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#020408;--surface:#080e18;--surface2:#0d1a2e;
+  --border:#1a2f50;--border2:#0f2040;
+  --cyan:#00d4ff;--green:#00ff88;--red:#ff4466;
+  --orange:#ff8c00;--purple:#b44dff;--yellow:#ffd700;
+  --text:#c8e0ff;--text2:#6a8aaa;--text3:#3a5a7a;
+  --font-mono:'Share Tech Mono',monospace;
+  --font-head:'Orbitron',sans-serif;
+  --font-body:'Exo 2',sans-serif;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font-body)}
+#canvas-bg{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+
+/* LAYOUT */
+#app{position:relative;z-index:1;width:100%;height:100vh;display:flex;flex-direction:column}
+#navbar{height:56px;border-bottom:1px solid var(--border);background:rgba(2,4,8,.9);backdrop-filter:blur(12px);display:flex;align-items:center;padding:0 24px;gap:16px;flex-shrink:0}
+.nav-logo{font-family:var(--font-head);font-size:1.1rem;font-weight:900;color:var(--cyan);letter-spacing:3px;cursor:pointer;text-shadow:0 0 20px rgba(0,212,255,.4)}
+.nav-logo span{color:var(--green)}
+.nav-sep{color:var(--border);margin:0 4px}
+.nav-links{display:flex;gap:4px;margin-left:8px}
+.nav-btn{font-family:var(--font-mono);font-size:.72rem;color:var(--text2);padding:5px 12px;border-radius:4px;cursor:pointer;border:1px solid transparent;transition:all .2s;letter-spacing:.5px}
+.nav-btn:hover,.nav-btn.active{color:var(--cyan);border-color:rgba(0,212,255,.2);background:rgba(0,212,255,.05)}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.nav-user{font-family:var(--font-mono);font-size:.75rem;color:var(--green);display:flex;align-items:center;gap:7px}
+.avatar{width:26px;height:26px;border-radius:50%;border:2px solid;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.65rem}
+.nav-pts{font-family:var(--font-mono);font-size:.72rem;color:var(--yellow)}
+.btn-sm{font-family:var(--font-mono);font-size:.7rem;padding:5px 14px;border-radius:4px;cursor:pointer;transition:all .2s;border:1px solid}
+.btn-outline{color:var(--cyan);border-color:rgba(0,212,255,.3);background:transparent}
+.btn-outline:hover{background:rgba(0,212,255,.08)}
+.btn-danger{color:var(--red);border-color:rgba(255,68,102,.3);background:transparent;font-size:.65rem;padding:4px 10px}
+.btn-danger:hover{background:rgba(255,68,102,.08)}
+
+/* MAIN CONTENT */
+#main{flex:1;overflow:hidden;position:relative}
+.page{position:absolute;inset:0;overflow-y:auto;padding:24px;display:none}
+.page.active{display:block}
+.page::-webkit-scrollbar{width:6px}
+.page::-webkit-scrollbar-track{background:transparent}
+.page::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* HERO PAGE */
+#page-home{display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px}
+#page-home.active{display:flex}
+.hero-tag{font-family:var(--font-mono);font-size:.72rem;color:var(--cyan);letter-spacing:3px;margin-bottom:16px;opacity:.7}
+.hero-title{font-family:var(--font-head);font-size:clamp(2rem,5vw,3.8rem);font-weight:900;letter-spacing:4px;line-height:1.1;margin-bottom:12px}
+.hero-title .line1{color:#fff;display:block}
+.hero-title .line2{background:linear-gradient(135deg,var(--cyan),var(--green));-webkit-background-clip:text;-webkit-text-fill-color:transparent;display:block}
+.hero-title .line3{color:var(--purple);display:block;font-size:60%}
+.hero-sub{font-size:.9rem;color:var(--text2);max-width:500px;line-height:1.7;margin-bottom:32px}
+.hero-stats{display:flex;gap:32px;margin-bottom:40px}
+.stat-box{text-align:center}
+.stat-num{font-family:var(--font-head);font-size:1.8rem;font-weight:900;color:var(--cyan);display:block}
+.stat-lbl{font-family:var(--font-mono);font-size:.65rem;color:var(--text3);letter-spacing:2px}
+.hero-btns{display:flex;gap:12px}
+.btn-primary{font-family:var(--font-head);font-size:.75rem;font-weight:700;letter-spacing:2px;padding:12px 28px;border-radius:6px;cursor:pointer;transition:all .25s;border:none}
+.btn-glow{background:linear-gradient(135deg,#0088cc,#00d4ff);color:#000}
+.btn-glow:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(0,212,255,.4)}
+.btn-ghost2{background:transparent;border:1px solid rgba(0,255,136,.3);color:var(--green)}
+.btn-ghost2:hover{background:rgba(0,255,136,.06);transform:translateY(-2px)}
+
+/* CATEGORY COLORS */
+.cat-WEB{--cc:var(--cyan)}
+.cat-PWN{--cc:var(--red)}
+.cat-REV{--cc:var(--orange)}
+.cat-CRYPTO{--cc:var(--purple)}
+.cat-FORENSICS{--cc:#22ddaa}
+.cat-MISC{--cc:var(--yellow)}
+
+/* CHALLENGE GRID */
+.section-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.section-title{font-family:var(--font-head);font-size:.85rem;font-weight:700;letter-spacing:3px;color:var(--text2)}
+.section-line{flex:1;height:1px;background:var(--border2)}
+.cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:32px}
+.chall-card{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.chall-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--cc,var(--cyan));opacity:.6}
+.chall-card:hover{border-color:rgba(255,255,255,.1);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.chall-card.solved{opacity:.65}
+.chall-card.solved::after{content:'✓ SOLVED';position:absolute;top:8px;right:8px;font-family:var(--font-mono);font-size:.6rem;color:var(--green);background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.2);padding:2px 6px;border-radius:3px}
+.card-cat{font-family:var(--font-mono);font-size:.6rem;color:var(--cc,var(--cyan));letter-spacing:2px;margin-bottom:6px}
+.card-title{font-family:var(--font-head);font-size:.8rem;font-weight:700;color:#eef;margin-bottom:6px;line-height:1.3}
+.card-desc{font-size:.75rem;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:10px}
+.card-footer{display:flex;align-items:center;justify-content:space-between}
+.card-pts{font-family:var(--font-mono);font-size:.72rem;color:var(--yellow)}
+.card-diff{font-family:var(--font-mono);font-size:.6rem;padding:2px 7px;border-radius:3px}
+.diff-Easy{color:#00ff88;background:rgba(0,255,136,.08);border:1px solid rgba(0,255,136,.15)}
+.diff-Medium{color:#ffd700;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.15)}
+.diff-Hard{color:#ff8c00;background:rgba(255,140,0,.08);border:1px solid rgba(255,140,0,.15)}
+.diff-Insane{color:#ff4466;background:rgba(255,68,102,.08);border:1px solid rgba(255,68,102,.15)}
+.card-solves{font-family:var(--font-mono);font-size:.6rem;color:var(--text3)}
+
+/* MODAL */
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+#modal-overlay.open{display:flex}
+#modal{background:var(--surface2);border:1px solid var(--border);border-radius:12px;width:min(560px,94vw);max-height:90vh;overflow-y:auto;position:relative}
+#modal::-webkit-scrollbar{width:4px}
+#modal::-webkit-scrollbar-thumb{background:var(--border)}
+.modal-header{padding:20px 24px 0;border-bottom:1px solid var(--border2);margin-bottom:0}
+.modal-cat{font-family:var(--font-mono);font-size:.62rem;letter-spacing:2px;margin-bottom:6px}
+.modal-title{font-family:var(--font-head);font-size:1rem;font-weight:700;color:#fff;margin-bottom:4px}
+.modal-meta{display:flex;align-items:center;gap:10px;padding:10px 0 14px;flex-wrap:wrap}
+.modal-body{padding:20px 24px}
+.modal-desc{font-size:.83rem;color:var(--text);line-height:1.7;margin-bottom:16px}
+.modal-hint-box{background:rgba(255,215,0,.04);border:1px solid rgba(255,215,0,.12);border-radius:6px;padding:12px;margin-bottom:16px}
+.modal-hint-lbl{font-family:var(--font-mono);font-size:.6rem;color:var(--yellow);letter-spacing:2px;margin-bottom:4px}
+.modal-hint-text{font-size:.78rem;color:var(--text2);line-height:1.6}
+.modal-solvers{font-family:var(--font-mono);font-size:.65rem;color:var(--text3);margin-bottom:16px}
+.flag-row{display:flex;gap:8px}
+.flag-input{flex:1;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:6px;padding:10px 14px;color:var(--text);font-family:var(--font-mono);font-size:.8rem;outline:none;transition:border-color .2s}
+.flag-input:focus{border-color:var(--cyan)}
+.flag-input::placeholder{color:var(--text3)}
+.btn-submit{font-family:var(--font-head);font-size:.7rem;font-weight:700;letter-spacing:1px;padding:10px 18px;border-radius:6px;background:linear-gradient(135deg,#006688,#00d4ff);color:#000;border:none;cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-submit:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,212,255,.3)}
+.btn-submit:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.submit-msg{margin-top:10px;font-family:var(--font-mono);font-size:.75rem;padding:8px 12px;border-radius:5px;display:none}
+.msg-ok{background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.2);color:var(--green)}
+.msg-err{background:rgba(255,68,102,.06);border:1px solid rgba(255,68,102,.2);color:var(--red)}
+.btn-hint{font-family:var(--font-head);font-size:.65rem;font-weight:700;letter-spacing:1px;padding:8px 14px;border-radius:5px;background:transparent;border:1px solid rgba(255,215,0,.35);color:var(--yellow);cursor:pointer;transition:all .2s;white-space:nowrap}
+.btn-hint:hover{background:rgba(255,215,0,.08);transform:translateY(-1px)}
+.btn-hint:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.modal-close{position:absolute;top:14px;right:16px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text2);cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.modal-close:hover{background:rgba(255,68,102,.1);color:var(--red)}
+
+/* AUTH PAGE */
+#page-auth{display:none;flex-direction:column;align-items:center;justify-content:center}
+#page-auth.active{display:flex}
+.auth-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:min(400px,92vw);padding:32px;position:relative;overflow:hidden}
+.auth-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cyan),var(--purple))}
+.auth-title{font-family:var(--font-head);font-size:1.1rem;font-weight:700;letter-spacing:2px;color:#fff;margin-bottom:6px}
+.auth-sub{font-size:.78rem;color:var(--text2);margin-bottom:24px}
+.form-group{margin-bottom:16px}
+.form-label{font-family:var(--font-mono);font-size:.65rem;color:var(--text2);letter-spacing:1.5px;display:block;margin-bottom:5px}
+.form-input{width:100%;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:6px;padding:10px 14px;color:var(--text);font-family:var(--font-mono);font-size:.82rem;outline:none;transition:border-color .2s}
+.form-input:focus{border-color:var(--cyan)}
+.form-input::placeholder{color:var(--text3)}
+.btn-auth{width:100%;padding:12px;font-family:var(--font-head);font-size:.75rem;font-weight:700;letter-spacing:2px;border:none;border-radius:6px;cursor:pointer;transition:all .25s;margin-top:4px}
+.btn-login{background:linear-gradient(135deg,#006688,#00d4ff);color:#000}
+.btn-login:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(0,212,255,.35)}
+.btn-register{background:linear-gradient(135deg,#440088,#b44dff);color:#fff}
+.btn-register:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(180,77,255,.35)}
+.auth-switch{text-align:center;margin-top:16px;font-size:.78rem;color:var(--text2)}
+.auth-switch a{color:var(--cyan);cursor:pointer;text-decoration:none}
+.auth-switch a:hover{text-decoration:underline}
+.auth-err{background:rgba(255,68,102,.06);border:1px solid rgba(255,68,102,.2);color:var(--red);font-family:var(--font-mono);font-size:.72rem;padding:8px 12px;border-radius:5px;margin-bottom:14px;display:none}
+.auth-err.show{display:block}
+
+/* SCOREBOARD */
+.score-table{width:100%;border-collapse:collapse}
+.score-table th{font-family:var(--font-mono);font-size:.65rem;letter-spacing:1.5px;color:var(--text3);text-align:left;padding:8px 12px;border-bottom:1px solid var(--border2)}
+.score-table td{padding:10px 12px;border-bottom:1px solid rgba(26,47,80,.3);font-size:.8rem}
+.score-rank{font-family:var(--font-head);font-size:.7rem;color:var(--text3);width:40px}
+.rank-1{color:var(--yellow)!important}
+.rank-2{color:#c0c0c0!important}
+.rank-3{color:#cd7f32!important}
+.score-user{display:flex;align-items:center;gap:9px}
+.score-name{font-family:var(--font-mono);font-size:.78rem;color:var(--text)}
+.score-pts{font-family:var(--font-head);font-size:.8rem;font-weight:700;color:var(--yellow);text-align:right}
+.score-solves{font-family:var(--font-mono);font-size:.7rem;color:var(--text2);text-align:center}
+.score-bar{background:rgba(0,212,255,.06);height:4px;border-radius:2px;margin-top:4px}
+.score-bar-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:2px;transition:width .5s}
+.score-table tr:hover td{background:rgba(255,255,255,.02)}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast-item{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 16px;font-family:var(--font-mono);font-size:.75rem;min-width:240px;animation:slideIn .3s ease;pointer-events:none}
+.toast-ok{border-color:rgba(0,255,136,.3);color:var(--green)}
+.toast-err{border-color:rgba(255,68,102,.3);color:var(--red)}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+/* PROFILE */
+.profile-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:24px;max-width:600px;margin:0 auto 24px}
+.profile-top{display:flex;align-items:center;gap:16px;margin-bottom:20px}
+.profile-avatar{width:60px;height:60px;border-radius:50%;border:3px solid;display:flex;align-items:center;justify-content:center;font-family:var(--font-head);font-size:1.4rem;font-weight:900}
+.profile-info h2{font-family:var(--font-head);font-size:1.1rem;font-weight:700;color:#fff}
+.profile-info p{font-family:var(--font-mono);font-size:.7rem;color:var(--text2);margin-top:2px}
+.profile-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.pstat{background:var(--surface2);border:1px solid var(--border2);border-radius:7px;padding:14px;text-align:center}
+.pstat-num{font-family:var(--font-head);font-size:1.4rem;font-weight:700;color:var(--cyan)}
+.pstat-lbl{font-family:var(--font-mono);font-size:.6rem;color:var(--text3);letter-spacing:1px;margin-top:2px}
+
+/* CATEGORY FILTER */
+.cat-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+.cat-chip{font-family:var(--font-mono);font-size:.65rem;letter-spacing:1.5px;padding:5px 12px;border-radius:20px;cursor:pointer;border:1px solid var(--border);color:var(--text2);transition:all .2s;background:transparent}
+.cat-chip:hover,.cat-chip.active{background:rgba(0,212,255,.08);border-color:rgba(0,212,255,.3);color:var(--cyan)}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+  .hero-stats{gap:20px}.stat-num{font-size:1.4rem}
+  .hero-title{font-size:1.8rem}
+  .cat-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<canvas id="canvas-bg"></canvas>
+
+<div id="app">
+  <nav id="navbar">
+    <div class="nav-logo" onclick="navigate('home')">G4<span>ram</span></div>
+    <span class="nav-sep">//</span>
+    <div class="nav-links" id="nav-links">
+      <button class="nav-btn active" data-page="home" onclick="navigate('home')">HOME</button>
+      <button class="nav-btn" data-page="challenges" onclick="navigate('challenges')">CHALLENGES</button>
+      <button class="nav-btn" data-page="scoreboard" onclick="navigate('scoreboard')">SCOREBOARD</button>
+    </div>
+    <div class="nav-right" id="nav-right">
+      <!-- filled by JS -->
+    </div>
+  </nav>
+
+  <div id="main">
+    <!-- HOME -->
+    <div id="page-home" class="page active">
+      <h1 class="hero-title">
+        <span class="line1">TESTING SKILL</span>
+        <span class="line2">FOR G4RAM</span>
+        
+      </h1>
+      <p class="hero-sub">A comprehensive Cyber Security skill assessment. Web · Pwn · Reverse · Crypto · Forensics · Misc. Prove your real-world expertise.</p>
+      <div class="hero-stats">
+        <div class="stat-box"><span class="stat-num" id="stat-challs">21</span><span class="stat-lbl">CHALLENGES</span></div>
+        <div class="stat-box"><span class="stat-num" id="stat-players">0</span><span class="stat-lbl">PLAYERS</span></div>
+        <div class="stat-box"><span class="stat-num" id="stat-solves">0</span><span class="stat-lbl">SOLVES</span></div>
+      </div>
+      <div class="hero-btns" id="hero-btns">
+        <button class="btn-primary btn-glow" onclick="navigate('challenges')">START HACKING</button>
+        <button class="btn-primary btn-ghost2" onclick="navigate('scoreboard')">SCOREBOARD</button>
+      </div>
+    </div>
+
+    <!-- CHALLENGES -->
+    <div id="page-challenges" class="page" style="display:none">
+      <div class="cat-filter" id="cat-filter">
+        <button class="cat-chip active" data-cat="ALL" onclick="filterCat('ALL',this)">ALL</button>
+        <button class="cat-chip" data-cat="WEB" onclick="filterCat('WEB',this)">WEB</button>
+        <button class="cat-chip" data-cat="PWN" onclick="filterCat('PWN',this)">PWN</button>
+        <button class="cat-chip" data-cat="REV" onclick="filterCat('REV',this)">REV</button>
+        <button class="cat-chip" data-cat="CRYPTO" onclick="filterCat('CRYPTO',this)">CRYPTO</button>
+        <button class="cat-chip" data-cat="FORENSICS" onclick="filterCat('FORENSICS',this)">FORENSICS</button>
+        <button class="cat-chip" data-cat="MISC" onclick="filterCat('MISC',this)">MISC</button>
+      </div>
+      <div id="challenges-content">Loading...</div>
+    </div>
+
+    <!-- SCOREBOARD -->
+    <div id="page-scoreboard" class="page" style="display:none">
+      <div class="section-header"><span class="section-title">SCOREBOARD</span><div class="section-line"></div></div>
+      <div id="scoreboard-content">Loading...</div>
+    </div>
+
+    <!-- PROFILE -->
+    <div id="page-profile" class="page" style="display:none">
+      <div id="profile-content">Loading...</div>
+    </div>
+
+    <!-- AUTH -->
+    <div id="page-auth" class="page">
+      <div class="auth-box">
+        <div id="auth-err" class="auth-err"></div>
+        <!-- Login form -->
+        <div id="form-login">
+          <div class="auth-title">SIGN IN</div>
+          <div class="auth-sub">Access your account</div>
+          <div class="form-group">
+            <label class="form-label">USERNAME</label>
+            <input class="form-input" id="login-username" type="text" placeholder="your_handle" autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label class="form-label">PASSWORD</label>
+            <input class="form-input" id="login-password" type="password" placeholder="••••••••" autocomplete="current-password">
+          </div>
+          <button class="btn-auth btn-login" onclick="doLogin()">LOGIN</button>
+          <div class="auth-switch">No account? <a onclick="switchAuth('register')">Register here</a></div>
+        </div>
+        <!-- Register form -->
+        <div id="form-register" style="display:none">
+          <div class="auth-title">REGISTER</div>
+          <div class="auth-sub">Create your account</div>
+          <div class="form-group">
+            <label class="form-label">USERNAME</label>
+            <input class="form-input" id="reg-username" type="text" placeholder="your_handle" autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label class="form-label">EMAIL</label>
+            <input class="form-input" id="reg-email" type="email" placeholder="you@example.com" autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label class="form-label">PASSWORD</label>
+            <input class="form-input" id="reg-password" type="password" placeholder="min 6 chars" autocomplete="new-password">
+          </div>
+          <button class="btn-auth btn-register" onclick="doRegister()">CREATE ACCOUNT</button>
+          <div class="auth-switch">Have an account? <a onclick="switchAuth('login')">Sign in</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHALLENGE MODAL -->
+<div id="modal-overlay" onclick="closeModal(event)">
+  <div id="modal">
+    <button class="modal-close" onclick="closeModalForce()">✕</button>
+    <div class="modal-header" id="modal-header"></div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ============================================================
+// THREE.JS BACKGROUND — Hexagonal Grid + Particles
+// ============================================================
+(function initThree(){
+  const canvas = document.getElementById('canvas-bg');
+  const renderer = new THREE.WebGLRenderer({canvas, alpha:true, antialias:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  renderer.setSize(innerWidth, innerHeight);
+
+  const scene = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(60, innerWidth/innerHeight, 0.1, 1000);
+  cam.position.set(0, 0, 30);
+
+  // Particle field
+  const N = 400;
+  const pos = new Float32Array(N * 3);
+  const vel = [];
+  for (let i = 0; i < N; i++) {
+    pos[i*3]   = (Math.random() - .5) * 80;
+    pos[i*3+1] = (Math.random() - .5) * 60;
+    pos[i*3+2] = (Math.random() - .5) * 40 - 10;
+    vel.push({
+      x: (Math.random()-.5)*.015,
+      y: (Math.random()-.5)*.01,
+      z: 0
+    });
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  const mat = new THREE.PointsMaterial({size:.08, color:0x00d4ff, transparent:true, opacity:.35, sizeAttenuation:true});
+  const pts = new THREE.Points(geo, mat);
+  scene.add(pts);
+
+  // Connection lines
+  const MAX_LINES = 800;
+  const linePos = new Float32Array(MAX_LINES * 6);
+  const lineGeo = new THREE.BufferGeometry();
+  lineGeo.setAttribute('position', new THREE.BufferAttribute(linePos, 3));
+  lineGeo.setDrawRange(0, 0);
+  const lineMat = new THREE.LineBasicMaterial({color:0x004466, transparent:true, opacity:.15});
+  scene.add(new THREE.LineSegments(lineGeo, lineMat));
+
+  // Hex grid
+  function hexPoints(cx, cy, r) {
+    const pts = [];
+    for (let i = 0; i <= 6; i++) {
+      const a = Math.PI/180 * (60 * i - 30);
+      pts.push(cx + r * Math.cos(a), cy + r * Math.sin(a), -15);
+    }
+    return pts;
+  }
+  const hexArr = [];
+  const HEX_R = 5, ROWS = 10, COLS = 15;
+  for (let row = -ROWS; row <= ROWS; row++) {
+    for (let col = -COLS; col <= COLS; col++) {
+      const x = col * HEX_R * 1.732;
+      const y = row * HEX_R * 1.5 + (col % 2 ? HEX_R * 0.75 : 0);
+      const pts = hexPoints(x, y, HEX_R * .95);
+      hexArr.push(...pts);
+    }
+  }
+  const hexGeo = new THREE.BufferGeometry();
+  hexGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(hexArr), 3));
+  const hexMat = new THREE.LineBasicMaterial({color:0x001a2e, transparent:true, opacity:.4});
+  scene.add(new THREE.LineSegments(hexGeo, hexMat));
+
+  let t = 0, mx = 0, my = 0;
+  document.addEventListener('mousemove', e => {
+    mx = (e.clientX/innerWidth - .5) * .4;
+    my = (e.clientY/innerHeight - .5) * .3;
+  });
+
+  function animate() {
+    requestAnimationFrame(animate);
+    t += .008;
+    const p = geo.attributes.position.array;
+    for (let i = 0; i < N; i++) {
+      p[i*3]   += vel[i].x + mx*.003;
+      p[i*3+1] += vel[i].y - my*.003;
+      if (p[i*3]   >  40) p[i*3]   = -40;
+      if (p[i*3]   < -40) p[i*3]   =  40;
+      if (p[i*3+1] >  30) p[i*3+1] = -30;
+      if (p[i*3+1] < -30) p[i*3+1] =  30;
+    }
+    geo.attributes.position.needsUpdate = true;
+
+    const la = lineGeo.attributes.position.array;
+    let li = 0;
+    for (let i = 0; i < N && li < MAX_LINES; i++) {
+      for (let j = i+1; j < N && li < MAX_LINES; j++) {
+        const dx = p[i*3]-p[j*3], dy = p[i*3+1]-p[j*3+1];
+        const d2 = dx*dx+dy*dy;
+        if (d2 < 80) {
+          la[li*6]=p[i*3]; la[li*6+1]=p[i*3+1]; la[li*6+2]=p[i*3+2];
+          la[li*6+3]=p[j*3]; la[li*6+4]=p[j*3+1]; la[li*6+5]=p[j*3+2];
+          li++;
+        }
+      }
+    }
+    lineGeo.setDrawRange(0, li*2);
+    lineGeo.attributes.position.needsUpdate = true;
+
+    cam.position.x += (mx * 2 - cam.position.x) * .02;
+    cam.position.y += (-my * 2 - cam.position.y) * .02;
+    cam.lookAt(0, 0, 0);
+    renderer.render(scene, cam);
+  }
+  animate();
+
+  window.addEventListener('resize', () => {
+    cam.aspect = innerWidth/innerHeight;
+    cam.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+})();
+
+// ============================================================
+// STATE
+// ============================================================
+let currentUser = null;
+let currentPage = 'home';
+let allChallenges = [];
+let activeCat = 'ALL';
+let currentChall = null;
+
+// ============================================================
+// AUTH
+// ============================================================
+async function checkAuth() {
+  try {
+    const r = await fetch('/api/me');
+    if (r.ok) {
+      currentUser = await r.json();
+      renderNav();
+      return true;
+    }
+  } catch {}
+  currentUser = null;
+  renderNav();
+  return false;
+}
+
+function renderNav() {
+  const nr = document.getElementById('nav-right');
+  if (currentUser) {
+    const initials = currentUser.username.slice(0,2).toUpperCase();
+    nr.innerHTML = `
+      <div class="nav-user">
+        <div class="avatar" style="border-color:${currentUser.avatar_color};color:${currentUser.avatar_color}">${initials}</div>
+        <span style="cursor:pointer" onclick="navigate('profile')">${currentUser.username}</span>
+      </div>
+      <span class="nav-pts">⬡ ${currentUser.points}</span>
+      <button class="btn-sm btn-danger" onclick="doLogout()">LOGOUT</button>
+    `;
+  } else {
+    nr.innerHTML = `<button class="btn-sm btn-outline" onclick="navigate('auth')">LOGIN / REGISTER</button>`;
+  }
+  // Update home stats
+  document.getElementById('stat-players').textContent = '—';
+}
+
+async function doLogin() {
+  const u = document.getElementById('login-username').value.trim();
+  const p = document.getElementById('login-password').value;
+  if (!u || !p) return showAuthErr('Fill all fields');
+  try {
+    const r = await fetch('/api/login', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})});
+    const d = await r.json();
+    if (!r.ok || d.error) return showAuthErr(d.error || 'Login failed');
+    await checkAuth();
+    navigate('challenges');
+    toast('Welcome back, ' + d.username + '!', 'ok');
+  } catch { showAuthErr('Connection error'); }
+}
+
+async function doRegister() {
+  const u = document.getElementById('reg-username').value.trim();
+  const e = document.getElementById('reg-email').value.trim();
+  const p = document.getElementById('reg-password').value;
+  if (!u || !e || !p) return showAuthErr('Fill all fields');
+  try {
+    const r = await fetch('/api/register', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,email:e,password:p})});
+    const d = await r.json();
+    if (!r.ok || d.error) return showAuthErr(d.error || 'Registration failed');
+    await checkAuth();
+    navigate('challenges');
+    toast('Account created! Welcome, ' + d.username, 'ok');
+  } catch { showAuthErr('Connection error'); }
+}
+
+async function doLogout() {
+  await fetch('/api/logout', {method:'POST'});
+  currentUser = null;
+  renderNav();
+  navigate('home');
+  toast('Logged out', 'ok');
+}
+
+function showAuthErr(msg) {
+  const el = document.getElementById('auth-err');
+  el.textContent = '⚠ ' + msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+function switchAuth(mode) {
+  document.getElementById('form-login').style.display = mode==='login' ? '' : 'none';
+  document.getElementById('form-register').style.display = mode==='register' ? '' : 'none';
+  document.getElementById('auth-err').classList.remove('show');
+}
+
+// Enter key on auth inputs
+['login-password','reg-password'].forEach(id => {
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('keydown', e => { if(e.key==='Enter') id.startsWith('login') ? doLogin() : doRegister(); });
+  }, 500);
+});
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function navigate(page) {
+  if (['challenges','profile','scoreboard'].includes(page) && !currentUser) {
+    navigate('auth');
+    return;
+  }
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p => {
+    p.style.display = 'none';
+    p.classList.remove('active');
+  });
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+
+  const el = document.getElementById('page-' + page);
+  if (el) {
+    if (page === 'home' || page === 'auth') {
+      el.style.display = 'flex';
+    } else {
+      el.style.display = 'block';
+    }
+    el.classList.add('active');
+  }
+  const nb = document.querySelector(`.nav-btn[data-page="${page}"]`);
+  if (nb) nb.classList.add('active');
+
+  if (page === 'challenges') loadChallenges();
+  if (page === 'scoreboard') loadScoreboard();
+  if (page === 'profile') loadProfile();
+}
+
+// ============================================================
+// CHALLENGES
+// ============================================================
+async function loadChallenges() {
+  if (!currentUser) return;
+  try {
+    const r = await fetch('/api/challenges');
+    if (!r.ok) return;
+    allChallenges = await r.json();
+    renderChallenges();
+  } catch {}
+}
+
+const CAT_ORDER = ['WEB','PWN','REV','CRYPTO','FORENSICS','MISC'];
+
+function renderChallenges() {
+  const el = document.getElementById('challenges-content');
+  const filtered = activeCat === 'ALL' ? allChallenges : allChallenges.filter(c => c.category === activeCat);
+  const byCat = {};
+  for (const c of filtered) {
+    if (!byCat[c.category]) byCat[c.category] = [];
+    byCat[c.category].push(c);
+  }
+  let html = '';
+  const cats = activeCat === 'ALL' ? CAT_ORDER.filter(c => byCat[c]) : [activeCat];
+  for (const cat of cats) {
+    if (!byCat[cat]) continue;
+    html += `<div class="section-header"><span class="section-title">${cat}</span><div class="section-line"></div></div>`;
+    html += `<div class="cat-grid cat-${cat}">`;
+    for (const c of byCat[cat]) {
+      html += `<div class="chall-card cat-${c.category}${c.solved?' solved':''}" onclick="openModal(${c.id})">
+        <div class="card-cat">${c.category}</div>
+        <div class="card-title">${c.title}</div>
+        <div class="card-desc">${c.description}</div>
+        <div class="card-footer">
+          <span class="card-pts">⬡ ${c.points}</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span class="card-solves">${c.solve_count} solves</span>
+            <span class="card-diff diff-${c.difficulty}">${c.difficulty}</span>
+          </div>
+        </div>
+      </div>`;
+    }
+    html += '</div>';
+  }
+  if (!html) html = '<p style="color:var(--text2);font-family:var(--font-mono);font-size:.8rem">No challenges found.</p>';
+  el.innerHTML = html;
+}
+
+function filterCat(cat, el) {
+  activeCat = cat;
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderChallenges();
+}
+
+// ============================================================
+// MODAL
+// ============================================================
+function buildModalBody(c) {
+  const catCol = {WEB:'var(--cyan)',PWN:'var(--red)',REV:'var(--orange)',CRYPTO:'var(--purple)',FORENSICS:'#22ddaa',MISC:'var(--yellow)'};
+
+  document.getElementById('modal-header').innerHTML = `
+    <div class="modal-cat" style="color:${catCol[c.category]||'var(--cyan)'}">${c.category}</div>
+    <div class="modal-title">${c.title}</div>
+    <div class="modal-meta">
+      <span class="card-diff diff-${c.difficulty}">${c.difficulty}</span>
+      <span class="card-pts" id="modal-pts">⬡ ${c.current_points} pts</span>
+      <span style="font-family:var(--font-mono);font-size:.65rem;color:var(--text2)">${c.solve_count} solver${c.solve_count!==1?'s':''}</span>
+      <span style="font-family:var(--font-mono);font-size:.62rem;color:var(--text3)">by ${c.author}</span>
+    </div>
+  `;
+
+  const solvedBanner = c.solved
+    ? `<div style="background:rgba(0,255,136,.05);border:1px solid rgba(0,255,136,.2);border-radius:6px;padding:10px 14px;margin-bottom:14px;font-family:var(--font-mono);font-size:.72rem;color:var(--green)">✓ You solved this challenge!</div>`
+    : '';
+
+  const hintSection = c.hint_unlocked && c.hint
+    ? `<div class="modal-hint-box"><div class="modal-hint-lbl">💡 HINT</div><div class="modal-hint-text" id="hint-text">${c.hint}</div></div>`
+    : `<div class="modal-hint-box" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+        <div>
+          <div class="modal-hint-lbl">💡 HINT</div>
+          <div style="font-family:var(--font-mono);font-size:.7rem;color:var(--text3)">Costs <span style="color:var(--red);font-weight:700">${c.hint_cost} pts</span> to unlock${c.solved?' (free — already solved)':''}</div>
+        </div>
+        <button class="btn-hint" id="hint-btn" onclick="unlockHint()">UNLOCK HINT</button>
+       </div>`;
+
+  document.getElementById('modal-body').innerHTML = `
+    ${solvedBanner}
+    <div class="modal-desc">${c.description}</div>
+    ${hintSection}
+    <div id="hint-msg" style="display:none;font-family:var(--font-mono);font-size:.72rem;margin-bottom:10px;padding:7px 12px;border-radius:5px"></div>
+    <div class="flag-row">
+      <input class="flag-input" id="flag-input" type="text" placeholder="QA{...} or FLAG{...}" ${c.solved?'disabled':''}>
+      <button class="btn-submit" id="flag-btn" onclick="submitFlag()" ${c.solved?'disabled':''}>SUBMIT</button>
+    </div>
+    <div class="submit-msg" id="submit-msg"></div>
+  `;
+
+  const fi = document.getElementById('flag-input');
+  if (fi) fi.addEventListener('keydown', e => { if(e.key==='Enter') submitFlag(); });
+}
+
+function openModal(id) {
+  const c = allChallenges.find(x => x.id === id);
+  if (!c) return;
+  currentChall = c;
+  buildModalBody(c);
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('modal-overlay')) closeModalForce();
+}
+function closeModalForce() {
+  document.getElementById('modal-overlay').classList.remove('open');
+  currentChall = null;
+}
+
+async function unlockHint() {
+  if (!currentChall) return;
+  const btn = document.getElementById('hint-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+
+  try {
+    const r = await fetch('/api/hint', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ slug: currentChall.slug })
+    });
+    const d = await r.json();
+
+    if (d.ok) {
+      // Update local state
+      currentChall.hint = d.hint;
+      currentChall.hint_unlocked = true;
+      allChallenges.find(c=>c.id===currentChall.id).hint = d.hint;
+      allChallenges.find(c=>c.id===currentChall.id).hint_unlocked = true;
+      if (d.cost > 0) {
+        currentUser.points = d.new_points;
+        renderNav();
+        toast(`Hint unlocked! −${d.cost} pts`, 'err');
+      } else {
+        toast('Hint unlocked! (free)', 'ok');
+      }
+      // Re-render hint section in place
+      buildModalBody(currentChall);
+    } else {
+      const hm = document.getElementById('hint-msg');
+      if (hm) { hm.style.display='block'; hm.style.background='rgba(255,68,102,.06)'; hm.style.border='1px solid rgba(255,68,102,.2)'; hm.style.color='var(--red)'; hm.textContent='✗ ' + (d.error || 'Failed to unlock hint'); }
+      if (btn) { btn.disabled=false; btn.textContent='UNLOCK HINT'; }
+    }
+  } catch {
+    if (btn) { btn.disabled=false; btn.textContent='UNLOCK HINT'; }
+  }
+}
+
+async function submitFlag() {
+  if (!currentChall) return;
+  const flag = document.getElementById('flag-input').value.trim();
+  if (!flag) return;
+
+  const btn = document.getElementById('flag-btn');
+  btn.disabled = true; btn.textContent = '...';
+
+  try {
+    const r = await fetch('/api/submit', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ slug: currentChall.slug, flag })
+    });
+    const d = await r.json();
+    const msgEl = document.getElementById('submit-msg');
+    msgEl.style.display = 'block';
+
+    if (d.ok) {
+      msgEl.className = 'submit-msg msg-ok';
+      msgEl.textContent = '🚩 ' + d.msg;
+      currentChall.solved = true;
+      currentUser.points = d.new_points;
+      renderNav();
+      const card = document.querySelector(`.chall-card[onclick="openModal(${currentChall.id})"]`);
+      if (card) card.classList.add('solved');
+      allChallenges.find(c=>c.id===currentChall.id).solved = true;
+      allChallenges.find(c=>c.id===currentChall.id).solve_count++;
+      toast('Flag captured! +' + d.points + ' pts', 'ok');
+      btn.disabled = true;
+      document.getElementById('flag-input').disabled = true;
+    } else {
+      msgEl.className = 'submit-msg msg-err';
+      msgEl.textContent = '✗ ' + d.msg;
+      btn.disabled = false; btn.textContent = 'SUBMIT';
+      setTimeout(() => msgEl.style.display='none', 3000);
+    }
+  } catch {
+    btn.disabled = false; btn.textContent = 'SUBMIT';
+  }
+}
+
+// ============================================================
+// SCOREBOARD
+// ============================================================
+async function loadScoreboard() {
+  try {
+    const r = await fetch('/api/scoreboard');
+    const data = await r.json();
+    const maxPts = data[0]?.points || 1;
+
+    const medals = ['🥇','🥈','🥉'];
+    let rows = data.map((u, i) => `
+      <tr>
+        <td class="score-rank ${i<3?'rank-'+(i+1):''}">${medals[i]||'#'+(i+1)}</td>
+        <td>
+          <div class="score-user">
+            <div class="avatar" style="width:28px;height:28px;font-size:.6rem;border-color:${u.avatar_color};color:${u.avatar_color}">
+              ${u.username.slice(0,2).toUpperCase()}
+            </div>
+            <div>
+              <div class="score-name">${u.username}</div>
+              <div class="score-bar" style="width:80px"><div class="score-bar-fill" style="width:${Math.round(u.points/maxPts*100)}%"></div></div>
+            </div>
+          </div>
+        </td>
+        <td class="score-solves">${u.solve_count}</td>
+        <td class="score-pts">⬡ ${u.points}</td>
+      </tr>
+    `).join('');
+
+    if (!rows) rows = '<tr><td colspan="4" style="text-align:center;color:var(--text2);font-family:var(--font-mono);font-size:.75rem;padding:24px">No players yet. Be the first!</td></tr>';
+
+    document.getElementById('scoreboard-content').innerHTML = `
+      <table class="score-table">
+        <thead><tr>
+          <th>#</th><th>PLAYER</th><th>SOLVES</th><th style="text-align:right">POINTS</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+    document.getElementById('stat-players').textContent = data.length;
+  } catch {}
+}
+
+// ============================================================
+// PROFILE
+// ============================================================
+async function loadProfile() {
+  if (!currentUser) return;
+  const u = currentUser;
+  const initials = u.username.slice(0,2).toUpperCase();
+  const solved = u.solves || [];
+  const totalPts = allChallenges.filter(c => solved.includes(c.slug)).reduce((a,c) => a+c.points, 0);
+
+  const byCat = {};
+  for (const slug of solved) {
+    const ch = allChallenges.find(c=>c.slug===slug);
+    if (ch) { byCat[ch.category] = (byCat[ch.category]||0)+1; }
+  }
+
+  let catBars = Object.entries(byCat).map(([cat,n]) => {
+    const total = allChallenges.filter(c=>c.category===cat).length;
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span style="font-family:var(--font-mono);font-size:.65rem;color:var(--text2);width:80px">${cat}</span>
+      <div style="flex:1;height:6px;background:rgba(255,255,255,.05);border-radius:3px">
+        <div style="height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:3px;width:${Math.round(n/total*100)}%"></div>
+      </div>
+      <span style="font-family:var(--font-mono);font-size:.65rem;color:var(--text3)">${n}/${total}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('profile-content').innerHTML = `
+    <div class="profile-card">
+      <div class="profile-top">
+        <div class="profile-avatar" style="border-color:${u.avatar_color};color:${u.avatar_color}">${initials}</div>
+        <div class="profile-info">
+          <h2>${u.username}</h2>
+          <p>${u.email} · Joined ${new Date(u.created_at).toLocaleDateString()}</p>
+        </div>
+      </div>
+      <div class="profile-stats">
+        <div class="pstat"><div class="pstat-num">${u.points}</div><div class="pstat-lbl">POINTS</div></div>
+        <div class="pstat"><div class="pstat-num">${solved.length}</div><div class="pstat-lbl">SOLVED</div></div>
+        <div class="pstat"><div class="pstat-num">${allChallenges.length}</div><div class="pstat-lbl">TOTAL</div></div>
+      </div>
+    </div>
+    ${catBars ? `<div class="profile-card"><div style="font-family:var(--font-head);font-size:.75rem;letter-spacing:2px;color:var(--text2);margin-bottom:16px">PROGRESS BY CATEGORY</div>${catBars}</div>` : ''}
+  `;
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function toast(msg, type='ok') {
+  const c = document.getElementById('toast');
+  const el = document.createElement('div');
+  el.className = `toast-item toast-${type}`;
+  el.textContent = (type==='ok'?'✓ ':'✗ ') + msg;
+  c.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+(async () => {
+  await checkAuth();
+  if (currentUser) {
+    navigate('challenges');
+  } else {
+    navigate('home');
+  }
+  // Load scoreboard stats for home page
+  fetch('/api/scoreboard').then(r=>r.json()).then(d=>{
+    document.getElementById('stat-players').textContent = d.length;
+    const total = d.reduce((a,u)=>a+u.solve_count,0);
+    document.getElementById('stat-solves').textContent = total;
+  }).catch(()=>{});
+})();
+</script>
+</body>
+</html>
