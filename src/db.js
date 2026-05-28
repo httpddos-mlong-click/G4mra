@@ -77,7 +77,7 @@ const CHALLENGES = [
     title:'Flask Session',
     description:'An internal employee portal with multiple access tiers. Something about the way sessions are handled feels... off.',
     difficulty:'Easy',   base_points:100,
-    flag:'FLAG{y0u_1s_G4y?Y3s!}',
+    flag:'QA{yamate_senpai_access_granted_2026}',
     hint:'The secret key lives somewhere in the environment. Check what the log file reveals about accessible paths.',
     hint_cost:50, solve_count:0, author:'G4ram' },
 
