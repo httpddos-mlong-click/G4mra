@@ -9,8 +9,99 @@ const app = express();
 const JWT_SECRET = process.env.JWT_SECRET || 'g4ram-skill-secret-2026';
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+// ============================================================
+// WAF — blocks common attack patterns on the platform itself
+// (separate from CTF challenge vulns which run on their own infra)
+// ============================================================
+const WAF_RULES = [
+  // SQL Injection
+  { name: 'SQLi', pattern: /(\b(union|select|insert|update|delete|drop|truncate|exec|execute|xp_|sp_)\b[\s\S]{0,30}\b(from|into|table|where|set)\b)/i },
+  { name: 'SQLi', pattern: /('|")\s*(or|and)\s*('|"|\d|true|false)/i },
+  { name: 'SQLi', pattern: /;\s*(drop|delete|insert|update|create)\s/i },
+  // XSS
+  { name: 'XSS', pattern: /<\s*(script|iframe|object|embed|svg|img[^>]+onerror)[^>]*>/i },
+  { name: 'XSS', pattern: /javascript\s*:/i },
+  { name: 'XSS', pattern: /on(load|error|click|mouseover|focus|blur)\s*=/i },
+  // Path Traversal
+  { name: 'PathTraversal', pattern: /(\.\.[\/\\]){2,}/  },
+  { name: 'PathTraversal', pattern: /(\/etc\/passwd|\/etc\/shadow|\/proc\/self|\/windows\/system32)/i },
+  // SSTI
+  { name: 'SSTI', pattern: /\{\{.*\}\}|\{%.*%\}|\$\{.*\}/  },
+  // XXE
+  { name: 'XXE', pattern: /<!ENTITY\s/i },
+  { name: 'XXE', pattern: /SYSTEM\s+["'](file|http|ftp|expect|php)/i },
+  // Command Injection
+  { name: 'CMDi', pattern: /[;&|`]\s*(ls|cat|wget|curl|bash|sh|nc|ncat|python|perl|ruby|php)\b/i },
+  { name: 'CMDi', pattern: /\$\([^)]+\)/ },
+  // SSRF — block requests trying to hit internal IPs
+  { name: 'SSRF', pattern: /(127\.0\.0\.1|localhost|169\.254\.|10\.\d+\.\d+\.\d+|192\.168\.|172\.(1[6-9]|2\d|3[01])\.)/i },
+];
+
+const RATE_LIMIT = new Map(); // ip -> { count, resetAt }
+const RATE_WINDOW = 60 * 1000; // 1 min
+const RATE_MAX = 120;           // requests per window (normal browsing)
+const SUBMIT_RATE = new Map();  // ip -> { count, resetAt } for flag submits
+const SUBMIT_MAX = 30;          // max flag submits per minute
+
+function getRateKey(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
+}
+
+function checkRate(map, key, max) {
+  const now = Date.now();
+  let entry = map.get(key);
+  if (!entry || now > entry.resetAt) {
+    entry = { count: 0, resetAt: now + RATE_WINDOW };
+    map.set(key, entry);
+  }
+  entry.count++;
+  return entry.count <= max;
+}
+
+function waf(req, res, next) {
+  // Skip static assets
+  if (req.path.startsWith('/public') || req.path.match(/\.(js|css|html|png|ico|woff2?)$/)) return next();
+
+  const ip = getRateKey(req);
+
+  // Global rate limit
+  if (!checkRate(RATE_LIMIT, ip, RATE_MAX)) {
+    return res.status(429).json({ error: 'Too many requests. Slow down.' });
+  }
+
+  // Stricter rate on submit
+  if (req.path === '/api/submit' && !checkRate(SUBMIT_RATE, ip, SUBMIT_MAX)) {
+    return res.status(429).json({ error: 'Flag submission rate limit exceeded.' });
+  }
+
+  // Scan all input sources
+  const targets = [
+    JSON.stringify(req.body || {}),
+    JSON.stringify(req.query || {}),
+    JSON.stringify(req.params || {}),
+    req.headers['user-agent'] || '',
+    req.headers['referer'] || '',
+  ].join(' ');
+
+  for (const rule of WAF_RULES) {
+    if (rule.pattern.test(targets)) {
+      console.warn(`[WAF] Blocked ${rule.name} from ${ip} on ${req.method} ${req.path}`);
+      return res.status(403).json({ error: `Request blocked by WAF: ${rule.name} pattern detected.` });
+    }
+  }
+
+  // Block oversized payloads
+  const contentLength = parseInt(req.headers['content-length'] || '0');
+  if (contentLength > 50 * 1024) { // 50KB max
+    return res.status(413).json({ error: 'Payload too large.' });
+  }
+
+  next();
+}
+
+app.use(express.json({ limit: '50kb' }));
 app.use(cookieParser());
+app.use(waf);
 app.use(express.static(path.join(__dirname, '../public')));
 
 function auth(req, res, next) {
