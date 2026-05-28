@@ -4,9 +4,10 @@ const path = require('path');
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-const USERS_FILE  = path.join(DATA_DIR, 'users.json');
-const SOLVES_FILE = path.join(DATA_DIR, 'solves.json');
-const HINTS_FILE  = path.join(DATA_DIR, 'hints.json');
+const USERS_FILE   = path.join(DATA_DIR, 'users.json');
+const SOLVES_FILE  = path.join(DATA_DIR, 'solves.json');
+const HINTS_FILE   = path.join(DATA_DIR, 'hints.json');
+const COUNTS_FILE  = path.join(DATA_DIR, 'solve_counts.json');
 
 function read(file, def) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return def; }
@@ -17,9 +18,11 @@ const db = {
   getUsers:  () => read(USERS_FILE,  []),
   getSolves: () => read(SOLVES_FILE, []),
   getHints:  () => read(HINTS_FILE,  []),
+  getCounts: () => read(COUNTS_FILE, {}),
   saveUsers:  d => write(USERS_FILE,  d),
   saveSolves: d => write(SOLVES_FILE, d),
   saveHints:  d => write(HINTS_FILE,  d),
+  saveCounts: d => write(COUNTS_FILE, d),
 
   getUserById:       id => db.getUsers().find(u => u.id === id),
   getUserByUsername: u  => db.getUsers().find(x => x.username === u),
@@ -53,8 +56,12 @@ const db = {
     solves.push({ user_id: uid, challenge_id: cid, points_awarded: pts, solved_at: new Date().toISOString() });
     db.saveSolves(solves);
     db.updateUserPoints(uid, pts);
+    // Persist solve_count
+    const counts = db.getCounts();
+    counts[cid] = (counts[cid] || 0) + 1;
+    db.saveCounts(counts);
     const ch = CHALLENGES.find(c => c.id === cid);
-    if (ch) ch.solve_count = (ch.solve_count || 0) + 1;
+    if (ch) ch.solve_count = counts[cid];
   },
 
   addHint(uid, cid, cost) {
@@ -77,7 +84,7 @@ const CHALLENGES = [
     title:'Flask Session',
     description:'An internal employee portal with multiple access tiers. Something about the way sessions are handled feels... off.',
     difficulty:'Easy',   base_points:100,
-    flag:'QA{yamate_senpai_access_granted_2026}',
+    flag:'FLAG{y0u_1s_G4y?Y3s!}',
     hint:'The secret key lives somewhere in the environment. Check what the log file reveals about accessible paths.',
     hint_cost:50, solve_count:0, author:'G4ram' },
 
