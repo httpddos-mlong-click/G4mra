@@ -4,15 +4,29 @@ const path = require('path');
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '../data');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 
-const USERS_FILE   = path.join(DATA_DIR, 'users.json');
-const SOLVES_FILE  = path.join(DATA_DIR, 'solves.json');
-const HINTS_FILE   = path.join(DATA_DIR, 'hints.json');
-const COUNTS_FILE  = path.join(DATA_DIR, 'solve_counts.json');
+const USERS_FILE  = path.join(DATA_DIR, 'users.json');
+const SOLVES_FILE = path.join(DATA_DIR, 'solves.json');
+const HINTS_FILE  = path.join(DATA_DIR, 'hints.json');
+const COUNTS_FILE = path.join(DATA_DIR, 'solve_counts.json');
 
 function read(file, def) {
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch { return def; }
 }
-function write(file, data) { fs.writeFileSync(file, JSON.stringify(data, null, 2)); }
+// Atomic write: write to .tmp then rename — prevents partial reads
+function write(file, data) {
+  const tmp = file + '.tmp';
+  fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+  fs.renameSync(tmp, file);
+}
+
+// In-memory mutex per operation type to prevent race conditions
+const _locks = {};
+async function withLock(key, fn) {
+  while (_locks[key]) await new Promise(r => setTimeout(r, 5));
+  _locks[key] = true;
+  try { return await fn(); }
+  finally { delete _locks[key]; }
+}
 
 const db = {
   getUsers:  () => read(USERS_FILE,  []),
@@ -25,25 +39,38 @@ const db = {
   saveCounts: d => write(COUNTS_FILE, d),
 
   getUserById:       id => db.getUsers().find(u => u.id === id),
-  getUserByUsername: u  => db.getUsers().find(x => x.username === u),
-  getUserByEmail:    e  => db.getUsers().find(x => x.email === e),
+  // Case-insensitive username lookup — prevents Admin/admin collision
+  getUserByUsername: u  => db.getUsers().find(x => x.username.toLowerCase() === u.toLowerCase()),
+  getUserByEmail:    e  => db.getUsers().find(x => x.email.toLowerCase() === e.toLowerCase()),
 
-  createUser(username, email, password_hash) {
-    const users = db.getUsers();
-    const id = users.length ? Math.max(...users.map(u => u.id)) + 1 : 1;
-    const colors = ['#00d4ff','#00ff88','#ff6b6b','#ffd700','#b44dff','#ff8c00','#2ec4b6'];
-    const avatar_color = colors[Math.floor(Math.random() * colors.length)];
-    const user = { id, username, email, password_hash, avatar_color, points: 0, created_at: new Date().toISOString() };
-    users.push(user);
-    db.saveUsers(users);
-    return user;
+  async createUser(username, email, password_hash) {
+    return withLock('users', () => {
+      const users = db.getUsers();
+      // Double-check uniqueness inside lock
+      if (users.find(u => u.username.toLowerCase() === username.toLowerCase()))
+        throw new Error('USERNAME_TAKEN');
+      if (users.find(u => u.email.toLowerCase() === email.toLowerCase()))
+        throw new Error('EMAIL_TAKEN');
+      const id = users.length ? Math.max(...users.map(u => u.id)) + 1 : 1;
+      const colors = ['#00d4ff','#00ff88','#ff6b6b','#ffd700','#b44dff','#ff8c00','#2ec4b6'];
+      const avatar_color = colors[Math.floor(Math.random() * colors.length)];
+      const user = { id, username, email, password_hash, avatar_color, points: 0, created_at: new Date().toISOString() };
+      users.push(user);
+      db.saveUsers(users);
+      return user;
+    });
   },
 
-  updateUserPoints(id, delta) {
-    const users = db.getUsers();
-    const u = users.find(x => x.id === id);
-    if (u) { u.points = (u.points || 0) + delta; db.saveUsers(users); }
-    return u;
+  async updateUserPoints(id, delta) {
+    return withLock('users', () => {
+      const users = db.getUsers();
+      const u = users.find(x => x.id === id);
+      if (u) {
+        u.points = Math.max(0, (u.points || 0) + delta); // floor at 0, no negative points
+        db.saveUsers(users);
+      }
+      return u;
+    });
   },
 
   getUserSolves: uid => db.getSolves().filter(s => s.user_id === uid),
@@ -51,24 +78,38 @@ const db = {
   hasSolved: (uid, cid) => db.getSolves().some(s => s.user_id === uid && s.challenge_id === cid),
   hasHint:   (uid, cid) => db.getHints().some(h => h.user_id === uid && h.challenge_id === cid),
 
-  addSolve(uid, cid, pts) {
-    const solves = db.getSolves();
-    solves.push({ user_id: uid, challenge_id: cid, points_awarded: pts, solved_at: new Date().toISOString() });
-    db.saveSolves(solves);
-    db.updateUserPoints(uid, pts);
-    // Persist solve_count
-    const counts = db.getCounts();
-    counts[cid] = (counts[cid] || 0) + 1;
-    db.saveCounts(counts);
-    const ch = CHALLENGES.find(c => c.id === cid);
-    if (ch) ch.solve_count = counts[cid];
+  async addSolve(uid, cid, pts) {
+    return withLock('solves_' + uid, async () => {
+      // Re-check inside lock to prevent double-solve race
+      if (db.hasSolved(uid, cid)) return { duplicate: true };
+      const solves = db.getSolves();
+      solves.push({ user_id: uid, challenge_id: cid, points_awarded: pts, solved_at: new Date().toISOString() });
+      db.saveSolves(solves);
+      await db.updateUserPoints(uid, pts);
+      const counts = db.getCounts();
+      counts[cid] = (counts[cid] || 0) + 1;
+      db.saveCounts(counts);
+      const ch = CHALLENGES.find(c => c.id === cid);
+      if (ch) ch.solve_count = counts[cid];
+      return { duplicate: false };
+    });
   },
 
-  addHint(uid, cid, cost) {
-    const hints = db.getHints();
-    hints.push({ user_id: uid, challenge_id: cid, unlocked_at: new Date().toISOString() });
-    db.saveHints(hints);
-    if (cost > 0) db.updateUserPoints(uid, -cost);
+  async addHint(uid, cid, cost) {
+    return withLock('hints_' + uid, async () => {
+      // Re-check inside lock to prevent double-unlock race
+      if (db.hasHint(uid, cid)) return { duplicate: true };
+      // Re-verify points inside lock
+      if (cost > 0) {
+        const user = db.getUserById(uid);
+        if (!user || user.points < cost) return { insufficient: true };
+      }
+      const hints = db.getHints();
+      hints.push({ user_id: uid, challenge_id: cid, unlocked_at: new Date().toISOString() });
+      db.saveHints(hints);
+      if (cost > 0) await db.updateUserPoints(uid, -cost);
+      return { duplicate: false };
+    });
   },
 };
 
@@ -189,7 +230,7 @@ const CHALLENGES = [
   // ── CRYPTO ───────────────────────────────────────────────────────────────
   { id:14, slug:'crypto-spectral',         category:'CRYPTO',
     title:'Spectral',
-    description:'An oracle that answers questions — but only up to a point. The answer you need lies just beyond its reach.',
+    description:"An oracle that answers questions — but only up to a point. The answer you need lies just beyond its reach.",
     difficulty:'Hard',   base_points:350,
     flag:'QA{sp3ctr4l_k3y_r3c0v3ry}',
     hint:'Oracle returns up to 2000 bytes per request. Reconstruct the LFSR internal state, then extrapolate forward to offset 131072.',
@@ -282,8 +323,21 @@ const CHALLENGES = [
     description:'Time is the message. Every frame tells you something if you measure carefully enough.',
     difficulty:'Hard',   base_points:350,
     flag:'QA{s31_n4l_fr4m3_jitt3r_m4st3r}',
-    hint:'Extract PTS (presentation timestamps) from each frame. Compute the delta between expected and actual PTS. Map deviations: small=0, large=1. Group into bytes.',
+    hint:'Extract PTS (presentation timestamps) from each frame. Compute delta between expected and actual PTS. Map deviations: small=0, large=1. Group into bytes.',
     hint_cost:200, solve_count:0, author:'G4ram' },
 ];
 
 module.exports = { db, dynamicPoints, CHALLENGES };
+
+// Boot recovery: restore solve_counts from disk
+(function bootRecover() {
+  try {
+    const counts = db.getCounts();
+    for (const ch of CHALLENGES) {
+      if (counts[ch.id] !== undefined) ch.solve_count = counts[ch.id];
+    }
+    console.log('[boot] solve_counts restored:', JSON.stringify(counts));
+  } catch(e) {
+    console.warn('[boot] could not restore solve_counts:', e.message);
+  }
+})();

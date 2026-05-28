@@ -434,6 +434,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 })();
 
 // ============================================================
+// UTILS — HTML escape to prevent XSS
+// ============================================================
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+// ============================================================
 // STATE
 // ============================================================
 let currentUser = null;
@@ -441,6 +449,7 @@ let currentPage = 'home';
 let allChallenges = [];
 let activeCat = 'ALL';
 let currentChall = null;
+let _challLoading = false;
 
 // ============================================================
 // AUTH
@@ -466,9 +475,9 @@ function renderNav() {
     nr.innerHTML = `
       <div class="nav-user">
         <div class="avatar" style="border-color:${currentUser.avatar_color};color:${currentUser.avatar_color}">${initials}</div>
-        <span style="cursor:pointer" onclick="navigate('profile')">${currentUser.username}</span>
+        <span style="cursor:pointer" onclick="navigate('profile')">${esc(currentUser.username)}</span>
       </div>
-      <span class="nav-pts">⬡ ${currentUser.points}</span>
+      <span class="nav-pts">⬡ ${Number(currentUser.points)||0}</span>
       <button class="btn-sm btn-danger" onclick="doLogout()">LOGOUT</button>
     `;
   } else {
@@ -563,7 +572,7 @@ function navigate(page) {
   const nb = document.querySelector(`.nav-btn[data-page="${page}"]`);
   if (nb) nb.classList.add('active');
 
-  if (page === 'challenges') loadChallenges();
+  if (page === 'challenges' && !document.getElementById('modal-overlay').classList.contains('open')) loadChallenges();
   if (page === 'scoreboard') loadScoreboard();
   if (page === 'profile') loadProfile();
 }
@@ -573,12 +582,20 @@ function navigate(page) {
 // ============================================================
 async function loadChallenges() {
   if (!currentUser) return;
+  if (_challLoading) return;
+  _challLoading = true;
+  const el = document.getElementById('challenges-content');
+  if (el && !allChallenges.length) el.innerHTML = '<p style="color:var(--text2);font-family:var(--font-mono);font-size:.8rem;padding:20px">Loading challenges...</p>';
   try {
     const r = await fetch('/api/challenges');
-    if (!r.ok) return;
+    if (!r.ok) { if(el) el.innerHTML='<p style="color:var(--red);font-family:var(--font-mono);font-size:.8rem;padding:20px">Failed to load challenges. Please refresh.</p>'; return; }
     allChallenges = await r.json();
     renderChallenges();
-  } catch {}
+  } catch(e) {
+    if(el) el.innerHTML='<p style="color:var(--red);font-family:var(--font-mono);font-size:.8rem;padding:20px">Network error. Please refresh.</p>';
+  } finally {
+    _challLoading = false;
+  }
 }
 
 const CAT_ORDER = ['WEB','PWN','REV','CRYPTO','FORENSICS','MISC'];
@@ -600,10 +617,10 @@ function renderChallenges() {
     for (const c of byCat[cat]) {
       html += `<div class="chall-card cat-${c.category}${c.solved?' solved':''}" onclick="openModal(${c.id})">
         <div class="card-cat">${c.category}</div>
-        <div class="card-title">${c.title}</div>
-        <div class="card-desc">${c.description}</div>
+        <div class="card-title">${esc(c.title)}</div>
+        <div class="card-desc">${esc(c.description)}</div>
         <div class="card-footer">
-          <span class="card-pts">⬡ ${c.points}</span>
+          <span class="card-pts">⬡ ${c.current_points}</span>
           <div style="display:flex;gap:6px;align-items:center">
             <span class="card-solves">${c.solve_count} solves</span>
             <span class="card-diff diff-${c.difficulty}">${c.difficulty}</span>
@@ -632,12 +649,12 @@ function buildModalBody(c) {
 
   document.getElementById('modal-header').innerHTML = `
     <div class="modal-cat" style="color:${catCol[c.category]||'var(--cyan)'}">${c.category}</div>
-    <div class="modal-title">${c.title}</div>
+    <div class="modal-title">${esc(c.title)}</div>
     <div class="modal-meta">
       <span class="card-diff diff-${c.difficulty}">${c.difficulty}</span>
       <span class="card-pts" id="modal-pts">⬡ ${c.current_points} pts</span>
       <span style="font-family:var(--font-mono);font-size:.65rem;color:var(--text2)">${c.solve_count} solver${c.solve_count!==1?'s':''}</span>
-      <span style="font-family:var(--font-mono);font-size:.62rem;color:var(--text3)">by ${c.author}</span>
+      <span style="font-family:var(--font-mono);font-size:.62rem;color:var(--text3)">by ${esc(c.author)}</span>
     </div>
   `;
 
@@ -646,7 +663,7 @@ function buildModalBody(c) {
     : '';
 
   const hintSection = c.hint_unlocked && c.hint
-    ? `<div class="modal-hint-box"><div class="modal-hint-lbl">💡 HINT</div><div class="modal-hint-text" id="hint-text">${c.hint}</div></div>`
+    ? `<div class="modal-hint-box"><div class="modal-hint-lbl">💡 HINT</div><div class="modal-hint-text" id="hint-text">${esc(c.hint)}</div></div>`
     : `<div class="modal-hint-box" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
         <div>
           <div class="modal-hint-lbl">💡 HINT</div>
@@ -657,7 +674,7 @@ function buildModalBody(c) {
 
   document.getElementById('modal-body').innerHTML = `
     ${solvedBanner}
-    <div class="modal-desc">${c.description}</div>
+    <div class="modal-desc">${esc(c.description)}</div>
     ${hintSection}
     <div id="hint-msg" style="display:none;font-family:var(--font-mono);font-size:.72rem;margin-bottom:10px;padding:7px 12px;border-radius:5px"></div>
     <div class="flag-row">
@@ -744,16 +761,19 @@ async function submitFlag() {
     if (d.ok) {
       msgEl.className = 'submit-msg msg-ok';
       msgEl.textContent = '🚩 ' + d.msg;
-      currentChall.solved = true;
       currentUser.points = d.new_points;
       renderNav();
-      const card = document.querySelector(`.chall-card[onclick="openModal(${currentChall.id})"]`);
-      if (card) card.classList.add('solved');
-      allChallenges.find(c=>c.id===currentChall.id).solved = true;
-      allChallenges.find(c=>c.id===currentChall.id).solve_count++;
       toast('Flag captured! +' + d.points + ' pts', 'ok');
       btn.disabled = true;
       document.getElementById('flag-input').disabled = true;
+      // Re-fetch challenges to sync server state
+      await loadChallenges();
+      // Update card in grid
+      const card = document.querySelector(`.chall-card[onclick="openModal(${currentChall.id})"]`);
+      if (card) card.classList.add('solved');
+      // Update currentChall ref
+      const fresh = allChallenges.find(c=>c.id===currentChall.id);
+      if (fresh) currentChall = fresh;
     } else {
       msgEl.className = 'submit-msg msg-err';
       msgEl.textContent = '✗ ' + d.msg;
@@ -770,7 +790,7 @@ async function submitFlag() {
 // ============================================================
 async function loadScoreboard() {
   try {
-    const r = await fetch('/api/scoreboard');
+    const r = await fetch('/api/scoreboard', {credentials:'include'});
     const data = await r.json();
     const maxPts = data[0]?.points || 1;
 
@@ -781,10 +801,10 @@ async function loadScoreboard() {
         <td>
           <div class="score-user">
             <div class="avatar" style="width:28px;height:28px;font-size:.6rem;border-color:${u.avatar_color};color:${u.avatar_color}">
-              ${u.username.slice(0,2).toUpperCase()}
+              ${esc(u.username.slice(0,2).toUpperCase())}
             </div>
             <div>
-              <div class="score-name">${u.username}</div>
+              <div class="score-name">${esc(u.username)}</div>
               <div class="score-bar" style="width:80px"><div class="score-bar-fill" style="width:${Math.round(u.points/maxPts*100)}%"></div></div>
             </div>
           </div>
@@ -816,7 +836,7 @@ async function loadProfile() {
   const u = currentUser;
   const initials = u.username.slice(0,2).toUpperCase();
   const solved = u.solves || [];
-  const totalPts = allChallenges.filter(c => solved.includes(c.slug)).reduce((a,c) => a+c.points, 0);
+  const totalPts = allChallenges.filter(c => solved.includes(c.slug)).reduce((a,c) => a+(c.current_points||c.base_points), 0);
 
   const byCat = {};
   for (const slug of solved) {
@@ -838,14 +858,14 @@ async function loadProfile() {
   document.getElementById('profile-content').innerHTML = `
     <div class="profile-card">
       <div class="profile-top">
-        <div class="profile-avatar" style="border-color:${u.avatar_color};color:${u.avatar_color}">${initials}</div>
+        <div class="profile-avatar" style="border-color:${esc(u.avatar_color)};color:${esc(u.avatar_color)}">${esc(initials)}</div>
         <div class="profile-info">
-          <h2>${u.username}</h2>
-          <p>${u.email} · Joined ${new Date(u.created_at).toLocaleDateString()}</p>
+          <h2>${esc(u.username)}</h2>
+          <p>${esc(u.email)} · Joined ${new Date(u.created_at).toLocaleDateString()}</p>
         </div>
       </div>
       <div class="profile-stats">
-        <div class="pstat"><div class="pstat-num">${u.points}</div><div class="pstat-lbl">POINTS</div></div>
+        <div class="pstat"><div class="pstat-num">${Number(u.points)||0}</div><div class="pstat-lbl">POINTS</div></div>
         <div class="pstat"><div class="pstat-num">${solved.length}</div><div class="pstat-lbl">SOLVED</div></div>
         <div class="pstat"><div class="pstat-num">${allChallenges.length}</div><div class="pstat-lbl">TOTAL</div></div>
       </div>
@@ -877,10 +897,9 @@ function toast(msg, type='ok') {
     navigate('home');
   }
   // Load scoreboard stats for home page
-  fetch('/api/scoreboard').then(r=>r.json()).then(d=>{
-    document.getElementById('stat-players').textContent = d.length;
-    const total = d.reduce((a,u)=>a+u.solve_count,0);
-    document.getElementById('stat-solves').textContent = total;
+  fetch('/api/stats').then(r=>r.json()).then(d=>{
+    document.getElementById('stat-players').textContent = d.players;
+    document.getElementById('stat-solves').textContent = d.total_solves;
   }).catch(()=>{});
 })();
 </script>
