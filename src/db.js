@@ -75,7 +75,7 @@ const CHALLENGES = [
   // ── WEB ──────────────────────────────────────────────────────────────────
   { id:1,  slug:'web-flask-session',       category:'WEB',
     title:'Flask Session',
-    description:'A Flask employee management app with a support/manager/admin privilege system. Enumerate the attack surface, escalate your privileges, and retrieve the admin flag.',
+    description:'An internal employee portal with multiple access tiers. Something about the way sessions are handled feels... off.',
     difficulty:'Easy',   base_points:100,
     flag:'FLAG{y0u_1s_G4y?Y3s!}',
     hint:'The secret key lives somewhere in the environment. Check what the log file reveals about accessible paths.',
@@ -83,7 +83,7 @@ const CHALLENGES = [
 
   { id:2,  slug:'web-babel-stage1',        category:'WEB',
     title:'The Babel Protocol — Stage 1',
-    description:'An XML processor turbocharged by a WebAssembly validator that controls which tags are accepted. Chain a WASM reverse, an Out-of-Band XXE, and an SSRF to extract a secret from the internal service.',
+    description:'A mysterious translation service that speaks in protocols long forgotten. Stage 1 of 2.',
     difficulty:'Hard',   base_points:300,
     flag:'QA{w4sm_r3v3rs1ng_xxe_00b_ssrf_ch41n}',
     hint:'Reverse the .wat file to discover the valid root tag. Then craft an XXE OOB payload pointing to internal-service:8888.',
@@ -91,7 +91,7 @@ const CHALLENGES = [
 
   { id:3,  slug:'web-babel-stage2',        category:'WEB',
     title:'The Babel Protocol — Stage 2',
-    description:'The session cookie is signed with SHA256(part1+part2). Exploit a SQL injection to recover part2, forge the cookie, then bypass the SSTI blacklist to achieve RCE on the server.',
+    description:'The protocol speaks again, but this time it remembers who you are. Or does it? Stage 2 of 2.',
     difficulty:'Insane', base_points:500,
     flag:'QA{sst1_f0rg3d_s3ss10n_rc3_ch41n_byp4ss}',
     hint:'SQLi at /api/search. SSTI bypass: use |map(attribute=var) instead of |attr. Split dunders: "__cl"~"ass__".',
@@ -99,7 +99,7 @@ const CHALLENGES = [
 
   { id:4,  slug:'web-the-race',            category:'WEB',
     title:'The Race',
-    description:'A multi-stage web chain: XXE+SSRF to steal stage 1 secret, SQLi+session forgery+SSTI for stage 2, then a brutal 3 ms race condition vault for the final flag. Three stages, one continuous exploit chain.',
+    description:'Three doors. One way through. The clock is ticking and the window is narrow. Can you finish the race?',
     difficulty:'Insane', base_points:500,
     flag:'QA{smuggl1ng_r4c3_c0nd1t10n_ful1_syst3m_t4k30v3r}',
     hint:'Stage 1: XXE OOB+SSRF. Stage 2: SQLi → session forge → SSTI. Stage 3: race window 3ms, XOR key = MD5(seed+token)[:5].',
@@ -107,7 +107,7 @@ const CHALLENGES = [
 
   { id:5,  slug:'web-binary-convergence',  category:'WEB',
     title:'The Binary-Web Convergence',
-    description:'A Next.js vault application. Leak the .env file via a differential XXE parser attack to get APP_SECRET_KEY and internal vault UUIDs, then chain path traversal with Unicode normalization to read the sealed flag.',
+    description:'Where binaries meet the web, secrets live in the walls. A vault that trusts a little too much.',
     difficulty:'Hard',   base_points:350,
     flag:'QA{p4th_tr4v3rs4l_un1c0d3_n0rm4l1z4t10n}',
     hint:'XXE leaks /app/.env → APP_SECRET_KEY + VAULT_UUIDs. Hash the UUID: SHA256(APP_SECRET_KEY+uuid). Path traversal: /vault/sealed/flag.txt via Unicode normalization bypass.',
@@ -116,7 +116,7 @@ const CHALLENGES = [
   // ── PWN ──────────────────────────────────────────────────────────────────
   { id:6,  slug:'pwn-overvaulted',         category:'PWN',
     title:'OverVaulted',
-    description:'A custom VM-based binary hides an Integer Overflow inside vault_resize(). Trigger a heap overflow to corrupt the dispatch table and redirect execution to reveal_flag.',
+    description:"A vault with numbers that don't quite add up. Maybe that's the point.",
     difficulty:'Medium', base_points:200,
     flag:'QA{0v3r_v4ult3d_h34p_0verfl0w}',
     hint:'OP_SYSCALL 1 leaks the reveal_flag address and GLOBAL_COOKIE. Integer overflow: v->capacity + new_cap wraps to 0.',
@@ -124,7 +124,7 @@ const CHALLENGES = [
 
   { id:7,  slug:'pwn-obsidian-vm',         category:'PWN',
     title:'Obsidian VM',
-    description:'A custom VM with a JIT compiler. The JIT buffer lives directly adjacent to the function table in memory. Overflow the buffer to overwrite func_table[0] with the address of flag_printer.',
+    description:'A custom runtime that compiles fast and trusts blindly. Speed kills.',
     difficulty:'Hard',   base_points:350,
     flag:'QA{0bs1d14n_jit_pwn_func_tabl3}',
     hint:'JIT buffer is 256 bytes. func_table[0] sits at offset +256. Fill the buffer with opcodes then write the target address.',
@@ -132,7 +132,7 @@ const CHALLENGES = [
 
   { id:8,  slug:'pwn-vaultvm2',            category:'PWN',
     title:'VaultVM 2',
-    description:'A VM with a JIT compiler that executes custom bytecode. Overflow the JIT buffer to corrupt func_table[0] with the address of flag_printer. Payload is 69 bytes.',
+    description:'The vault evolved. The compiler remained naive. History repeats.',
     difficulty:'Hard',   base_points:350,
     flag:'QA{v4ult_vm2_jit_c0rrupt10n}',
     hint:'flag_printer @ 0x402c69. func_table[0] = jit_page+256. Use opcode 0x7e to STORE arbitrary values into the JIT page.',
@@ -140,7 +140,7 @@ const CHALLENGES = [
 
   { id:9,  slug:'pwn-ksmbd',               category:'PWN',
     title:'KsmbDead',
-    description:'A kernel-level exploit targeting the ksmbd driver. Find the race condition buried inside the kernel module, escalate privileges to root, and read the flag.',
+    description:"Deep in the kernel, a driver handles file sharing. Sharing is caring — unless it's your privileges.",
     difficulty:'Insane', base_points:500,
     flag:'QA{k3rn3l_ksmb_d34d_r00t_esc4p3}',
     hint:'Load ksmbd.ko in Ghidra. The race lies in session reference counting — two threads can free the same object.',
@@ -148,7 +148,7 @@ const CHALLENGES = [
 
   { id:10, slug:'pwn-ksmbd-hell',          category:'PWN',
     title:'KSMBD HELL',
-    description:'A hardened variant of KsmbDead with full RELRO, stack canaries, and a custom seccomp filter. Bypass all mitigations and achieve kernel code execution to claim the final flag.',
+    description:'The driver hardened itself. More locks, more walls, more rules. Rules can be broken.',
     difficulty:'Insane', base_points:500,
     flag:'QA{ksmbd_h3ll_byp4ss_4ll_m1t1g4t10ns}',
     hint:'Seccomp whitelist: read/write/exit only. Leak the canary first via an info-leak gadget before corrupting the stack.',
@@ -157,7 +157,7 @@ const CHALLENGES = [
   // ── REV ──────────────────────────────────────────────────────────────────
   { id:11, slug:'rev-vietnamese',          category:'REV',
     title:'Vietnamese Identity',
-    description:'A binary that validates your input through several unique transform layers. Reverse engineer each step to reconstruct the correct flag string.',
+    description:'A guardian that checks your identity before letting you through. Do you know who you really are?',
     difficulty:'Easy',   base_points:100,
     flag:'QA{be-qa-la-nguoi-viet-nam}',
     hint:'Read the bundled .c source. Trace the per-byte transforms and invert them one by one.',
@@ -165,7 +165,7 @@ const CHALLENGES = [
 
   { id:12, slug:'rev-custom-hulk',         category:'REV',
     title:'Custom Hulk',
-    description:'Triple-layered binary: a custom byte transform (XOR/ROL/MUL mod 256), TEA encryption, and a linear checksum mod 251. Invert all three layers to recover the 20-character flag body.',
+    description:'Something big, green, and layered in protection. Peel it back.',
     difficulty:'Hard',   base_points:350,
     flag:'QA{YEAHH_da_ra_flag_roi}',
     hint:'Layer 1 inverse: ROL2→SUB 0x5B→XOR(i*0x37)→MUL(inv 0x1D)→ROR3→XOR 0xA5. TEA key: DEADBEEF CAFEBABE 13371337 FEEDC0DE.',
@@ -173,7 +173,7 @@ const CHALLENGES = [
 
   { id:13, slug:'rev-the-abyss',           category:'REV',
     title:'The Abyss',
-    description:'A 16-bit custom VM with anti-debug detection encoded in bit 2 of the flags register. Bypass the check, reverse the bytecode transform, and recover the 16-character flag body.',
+    description:'You stare into the VM. The VM stares back. One of you is lying.',
     difficulty:'Insane', base_points:500,
     flag:'QA{4byss_vm_r3v_ch4ll3ng3}',
     hint:'Transform pipeline: XOR 0x5A → ADD i*7 → XOR 0xC3. Patch the debug check in bytecode or compute the inverse directly.',
@@ -182,7 +182,7 @@ const CHALLENGES = [
   // ── CRYPTO ───────────────────────────────────────────────────────────────
   { id:14, slug:'crypto-spectral',         category:'CRYPTO',
     title:'Spectral',
-    description:'A custom stream cipher offers a keystream oracle capped at offset 8000. The flag is encrypted at offset 2^17 = 131072. Recover the internal key from oracle output and extrapolate.',
+    description:'An oracle that answers questions — but only up to a point. The answer you need lies just beyond its reach.',
     difficulty:'Hard',   base_points:350,
     flag:'QA{sp3ctr4l_k3y_r3c0v3ry}',
     hint:'Oracle returns up to 2000 bytes per request. Reconstruct the LFSR internal state, then extrapolate forward to offset 131072.',
@@ -190,7 +190,7 @@ const CHALLENGES = [
 
   { id:15, slug:'crypto-aegis',            category:'CRYPTO',
     title:'Aegis',
-    description:'A Diffie-Hellman key exchange using a 512-bit prime p whose p-1 is smooth. Apply Pohlig-Hellman to compute the discrete log, recover the shared secret, and decrypt the flag.',
+    description:'A shield forged from mathematics. Elegant, ancient, and hiding a fatal flaw.',
     difficulty:'Hard',   base_points:350,
     flag:'QA{4eg1s_p0hl1g_h3llm4n_dlp}',
     hint:'Factor p-1 into small primes. Solve DLP in each subgroup with BSGS then combine via CRT. Max 100 exchanges per session.',
@@ -198,7 +198,7 @@ const CHALLENGES = [
 
   { id:16, slug:'crypto-meridian',         category:'CRYPTO',
     title:'Meridian',
-    description:'A deliberately weak LWE-based KEM: n=40, q=12289, eta=1, HW=20. With 10 000 oracle queries you can recover the binary secret vector through statistical averaging.',
+    description:'A lattice in the fog. Ask enough questions and the fog begins to clear.',
     difficulty:'Insane', base_points:500,
     flag:'QA{m3r1d14n_lw3_k3y_r3c0v3ry}',
     hint:'For each secret bit: send the unit vector, average LWE responses over many queries, threshold at q/2. HW=20 means exactly 20 bits are 1.',
@@ -206,7 +206,7 @@ const CHALLENGES = [
 
   { id:17, slug:'crypto-triple-veil',      category:'CRYPTO',
     title:'Triple Veil',
-    description:'A flag encrypted with three stacked layers: RC4-style S-box substitution, columnar transposition, and an 8-round Feistel network. The 24-byte master key is split across three files.',
+    description:'Three curtains, one secret. The key was never in one place to begin with.',
     difficulty:'Insane', base_points:500,
     flag:'QA{tr1pl3_v31l_m4st3r_k3y}',
     hint:'Part 1: EXIF Comment of hint_image.png. Part 2: base64-decode body of pubkey.pem. Part 3: integrity field in config.json.',
@@ -215,7 +215,7 @@ const CHALLENGES = [
   // ── FORENSICS ────────────────────────────────────────────────────────────
   { id:18, slug:'for-echoing-void',        category:'FORENSICS',
     title:'The Echoing Void',
-    description:'A kernel rootkit uses a DNS covert channel combined with DGA to exfiltrate data. 99% of the capture is TLS/SSH noise. Isolate the real DNS packets and decrypt each chunk.',
+    description:'A ghost in the network, whispering through channels no one monitors. Most of the noise is noise. Most.',
     difficulty:'Insane', base_points:500,
     flag:'QA{dns_c0v3rt_ch4nn3l_dg4_3xf1l}',
     hint:'Filter DNS queries with QNAME entropy > 4.0. XOR key for each chunk = TTL bytes of the corresponding DNS response.',
@@ -223,7 +223,7 @@ const CHALLENGES = [
 
   { id:19, slug:'for-rootkit',             category:'FORENSICS',
     title:'Rootkit Extraction',
-    description:'A stripped Linux kernel module (.ko) stores an encrypted flag in .rodata. The decryption key is derived from the sys_call_table address and a hardcoded CPUID via ROR/ROL/XOR.',
+    description:'A module that loads in the dark and never announces itself. The flag is in there, sleeping.',
     difficulty:'Insane', base_points:500,
     flag:'QA{r00tk1t_k3rn3l_k3y_d3r1v3d}',
     hint:'Look up sys_read in System.map — this is the key base. XOR with the CPUID constant embedded in the .ko, then decrypt .rodata.',
@@ -231,7 +231,7 @@ const CHALLENGES = [
 
   { id:20, slug:'for-digital-trail',       category:'FORENSICS',
     title:'Digital Trail',
-    description:'A 5-stage forensics chain: raw disk image → file magic tricks → code deobfuscation → memory dump analysis → LSB steganography. Flag hides in the heap of a masquerading process.',
+    description:'Everyone leaves traces. Five layers of obfuscation, one trail of breadcrumbs.',
     difficulty:'Hard',   base_points:350,
     flag:'QA{m3m0ry_t3lls_4ll_s3cr3ts_fr0m_sl4ck_t0_h34p}',
     hint:'Stage 4: find process "qa_svchost" PID 3141 in memory.dmp. Flag is XOR-encoded at HEAP magic offset 0x100000; key = first 4 bytes of that heap chunk.',
@@ -240,7 +240,7 @@ const CHALLENGES = [
   // ── MISC ─────────────────────────────────────────────────────────────────
   { id:21, slug:'misc-pulse',              category:'MISC',
     title:'The Pulse',
-    description:'A completely ordinary video file — or is it? The flag is Morse-encoded and hidden inside the luminance (Y) channel of every frame via ±12 brightness units, invisible to the human eye.',
+    description:'A video that beats like a heart. Listen carefully.',
     difficulty:'Medium', base_points:200,
     flag:'QA{B1T_BY_B1T}',
     hint:'Convert frames to YCrCb, compute mean(Y), diff adjacent frames, threshold at ±8 → ON/OFF. RLE: 2f HIGH = dot, 6f HIGH = dash.',
@@ -248,7 +248,7 @@ const CHALLENGES = [
 
   { id:22, slug:'misc-hexagonal',          category:'MISC',
     title:'Hexagonal Veil',
-    description:'A file is concealed inside an MP4 video using a custom marker. Locate the marker, read the 2-byte length field, and XOR-decrypt the payload to extract the hidden content.',
+    description:'Something was slipped into this file when no one was looking.',
     difficulty:'Medium', base_points:200,
     flag:'QA{boot2root_hi_1_4m_Quynh4nh}',
     hint:'Hunt for bytes 51 41 43 54 46 00 00 01. Next 2 bytes = payload length. XOR key = SHA256(flag_bytes)[:8].',
@@ -256,7 +256,7 @@ const CHALLENGES = [
 
   { id:23, slug:'misc-hidden',             category:'MISC',
     title:'Hidden in Plain Sight',
-    description:'Multi-layer steganography inside a PNG. The Red channel LSBs carry a 32-bit length prefix, followed by an AES key (16 bytes), then the AES-CBC encrypted flag.',
+    description:"The image looks ordinary. It isn't.",
     difficulty:'Medium', base_points:200,
     flag:'QA{h1dd3n_1n_pl41n_s1ght_lsb}',
     hint:'PIL/Pillow: extract LSBs from R channel → 4-byte length → 16-byte AES key → CBC-decrypt the remainder.',
@@ -264,7 +264,7 @@ const CHALLENGES = [
 
   { id:24, slug:'misc-anime-girls',        category:'MISC',
     title:'AnimeGirlsParadox',
-    description:'A seemingly innocent anime image slideshow hides a paradox inside. Motion vectors between frames carry an encoded secret. Find the pattern in the chaos.',
+    description:'A paradox wrapped in motion. Not everything that moves is what it seems.',
     difficulty:'Medium', base_points:200,
     flag:'QA{m0t10n_s0ul_fr4gm3nt3d}',
     hint:'Analyze inter-frame motion vectors in the video. DCT coefficients in the chrominance channel carry the encoded flag fragments.',
@@ -272,7 +272,7 @@ const CHALLENGES = [
 
   { id:25, slug:'misc-mahiru',             category:'MISC',
     title:'Mahiru',
-    description:'A signal hidden in plain sight — frame timing jitter in a looping animation encodes the flag in sub-millisecond deviations. Measure the intervals, decode the sequence.',
+    description:'Time is the message. Every frame tells you something if you measure carefully enough.',
     difficulty:'Hard',   base_points:350,
     flag:'QA{s31_n4l_fr4m3_jitt3r_m4st3r}',
     hint:'Extract PTS (presentation timestamps) from each frame. Compute the delta between expected and actual PTS. Map deviations: small=0, large=1. Group into bytes.',
